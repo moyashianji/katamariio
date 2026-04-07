@@ -15,7 +15,7 @@ import java.util.Optional;
 public class ModNetwork {
     public static final String PROTOCOL_VERSION = "1";
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-            ResourceLocation.fromNamespaceAndPath(KatamariIO.MODID, "main"),
+            new ResourceLocation(KatamariIO.MODID, "main"),
             () -> PROTOCOL_VERSION,
             PROTOCOL_VERSION::equals,
             PROTOCOL_VERSION::equals
