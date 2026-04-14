@@ -1,7 +1,6 @@
 package com.github.tacowasa059.katamariio;
 
 import com.github.tacowasa059.katamariio.common.networks.ModNetwork;
-import com.github.tacowasa059.katamariio.common.serializers.ModDataSerializers;
 import net.minecraftforge.fml.common.Mod;
 
 // The value here should match an entry in the META-INF/mods.toml file
@@ -13,7 +12,6 @@ public class KatamariIO {
     public static final float DEFAULT_BALL_SIZE = 2.0f;
 
     public KatamariIO() {
-        ModDataSerializers.register();
         ModNetwork.register();
     }
 }

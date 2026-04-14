@@ -2,7 +2,6 @@ package com.github.tacowasa059.katamariio.mixin.common;
 
 import com.github.tacowasa059.katamariio.KatamariIO;
 import com.github.tacowasa059.katamariio.common.accessors.ICustomPlayerData;
-import com.github.tacowasa059.katamariio.common.serializers.ModDataSerializers;
 import com.github.tacowasa059.katamariio.common.utils.QuaternionUtils;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -51,13 +50,13 @@ public abstract class PlayerMixin implements ICustomPlayerData {
     private static final EntityDataAccessor<CompoundTag> CURRENT_POSITION = SynchedEntityData.defineId(Player.class, EntityDataSerializers.COMPOUND_TAG);
 
     @Unique
-    private static final EntityDataAccessor<List<Vec3>> SPHERICAL_PLAYER_POSITION_LIST = SynchedEntityData.defineId(Player.class, ModDataSerializers.VEC3_LIST);
+    private List<Vec3> katamariIO$positionList = new ArrayList<>();
     @Unique
-    private static final EntityDataAccessor<List<Quaternionf>> SPHERICAL_PLAYER_QUATERNION_LIST = SynchedEntityData.defineId(Player.class, ModDataSerializers.QUATERNION_LIST);
+    private List<Quaternionf> katamariIO$quaternionList = new ArrayList<>();
     @Unique
-    private static final EntityDataAccessor<List<Block>> SPHERICAL_PLAYER_BLOCK_LIST = SynchedEntityData.defineId(Player.class, ModDataSerializers.BLOCK_LIST);
+    private List<Block> katamariIO$blockList = new ArrayList<>();
     @Unique
-    private static final EntityDataAccessor<Integer> SPHERICAL_PLAYER_BLOCK_COUNT = SynchedEntityData.defineId(Player.class, EntityDataSerializers.INT);
+    private int katamariIO$blockCount = 0;
 
 
     @Unique
@@ -136,11 +135,6 @@ public abstract class PlayerMixin implements ICustomPlayerData {
         nbt1.putFloat("y", 0);
         nbt1.putFloat("z", 0);
         entity.getEntityData().define(CURRENT_POSITION, nbt1);
-
-        entity.getEntityData().define(SPHERICAL_PLAYER_POSITION_LIST, new ArrayList<>());
-        entity.getEntityData().define(SPHERICAL_PLAYER_QUATERNION_LIST, new ArrayList<>());
-        entity.getEntityData().define(SPHERICAL_PLAYER_BLOCK_LIST, new ArrayList<>());
-        entity.getEntityData().define(SPHERICAL_PLAYER_BLOCK_COUNT, 0);
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
@@ -153,11 +147,11 @@ public abstract class PlayerMixin implements ICustomPlayerData {
         compound.put("SPM_Quaternion", dataManager.get(sphericalPlayerMod$QUATERNION));
         compound.putFloat("SPM_RESTITUTION", dataManager.get(RESTITUTION_COEFFICIENT));
         compound.put("SPM_POSITION", dataManager.get(CURRENT_POSITION));
-        compound.putInt("SPM_BlockCount", dataManager.get(SPHERICAL_PLAYER_BLOCK_COUNT));
+        compound.putInt("SPM_BlockCount", katamariIO$blockCount);
 
-        List<Block> blocks = dataManager.get(SPHERICAL_PLAYER_BLOCK_LIST);
-        List<Vec3> positions = dataManager.get(SPHERICAL_PLAYER_POSITION_LIST);
-        List<Quaternionf> quaternions = dataManager.get(SPHERICAL_PLAYER_QUATERNION_LIST);
+        List<Block> blocks = katamariIO$blockList;
+        List<Vec3> positions = katamariIO$positionList;
+        List<Quaternionf> quaternions = katamariIO$quaternionList;
         int size = Math.min(blocks.size(), Math.min(positions.size(), quaternions.size()));
         ListTag attachedList = new ListTag();
         for (int i = 0; i < size; i++) {
@@ -208,12 +202,6 @@ public abstract class PlayerMixin implements ICustomPlayerData {
         if(compound.contains("SPM_POSITION")){
             dataManager.set(CURRENT_POSITION, compound.getCompound("SPM_POSITION"));
         }
-        if (compound.contains("SPM_BlockCount")) {
-            dataManager.set(SPHERICAL_PLAYER_BLOCK_COUNT, compound.getInt("SPM_BlockCount"));
-        } else {
-            dataManager.set(SPHERICAL_PLAYER_BLOCK_COUNT, dataManager.get(SPHERICAL_PLAYER_BLOCK_LIST).size());
-        }
-
         if (compound.contains(SPM_ATTACHED_BLOCKS, Tag.TAG_LIST)) {
             ListTag attachedList = compound.getList(SPM_ATTACHED_BLOCKS, Tag.TAG_COMPOUND);
             List<Block> blocks = new ArrayList<>();
@@ -241,11 +229,17 @@ public abstract class PlayerMixin implements ICustomPlayerData {
                 ));
             }
 
-            dataManager.set(SPHERICAL_PLAYER_BLOCK_LIST, blocks, true);
-            dataManager.set(SPHERICAL_PLAYER_POSITION_LIST, positions, true);
-            dataManager.set(SPHERICAL_PLAYER_QUATERNION_LIST, quaternions, true);
-            dataManager.set(SPHERICAL_PLAYER_BLOCK_COUNT, blocks.size());
+            katamariIO$blockList = blocks;
+            katamariIO$positionList = positions;
+            katamariIO$quaternionList = quaternions;
+            katamariIO$blockCount = blocks.size();
             katamariIO$binRadiiDirty = true;
+        }
+
+        if (compound.contains("SPM_BlockCount")) {
+            katamariIO$blockCount = compound.getInt("SPM_BlockCount");
+        } else {
+            katamariIO$blockCount = katamariIO$blockList.size();
         }
     }
     @Inject(method="getStandingEyeHeight",at=@At("HEAD"),cancellable = true)
@@ -403,53 +397,39 @@ public abstract class PlayerMixin implements ICustomPlayerData {
     @Override
     public void katamariIO$addBlock(Block block, Quaternionf quaternionf, Vec3 vec3) {
         Player entity = (Player)(Object)this;
-        List<Block> blocks = entity.getEntityData().get(SPHERICAL_PLAYER_BLOCK_LIST);
-        List<Quaternionf> quaternionfs = entity.getEntityData().get(SPHERICAL_PLAYER_QUATERNION_LIST);
-        List<Vec3> vec3s = entity.getEntityData().get(SPHERICAL_PLAYER_POSITION_LIST);
-
-        blocks.add(block);
-        quaternionfs.add(quaternionf);
-        vec3s.add(vec3);
-
-        entity.getEntityData().set(SPHERICAL_PLAYER_BLOCK_LIST, blocks, true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_POSITION_LIST, vec3s, true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_QUATERNION_LIST, quaternionfs, true);
-        int currentCount = entity.getEntityData().get(SPHERICAL_PLAYER_BLOCK_COUNT);
-        entity.getEntityData().set(SPHERICAL_PLAYER_BLOCK_COUNT, currentCount + 1);
+        katamariIO$blockList.add(block);
+        katamariIO$quaternionList.add(quaternionf);
+        katamariIO$positionList.add(vec3);
+        katamariIO$blockCount++;
         katamariIO$applyBlockRadiusIncremental(entity, vec3);
         katamariIO$pruneDataParameterByRadius(entity);
     }
 
     @Override
     public int katamariIO$getAttachedBlockCount() {
-        Player entity = (Player)(Object)this;
-        return entity.getEntityData().get(SPHERICAL_PLAYER_BLOCK_COUNT);
+        return katamariIO$blockCount;
     }
 
     @Override
     public void katamariIO$clearAttachedBlocks() {
-        Player entity = (Player)(Object)this;
-        entity.getEntityData().set(SPHERICAL_PLAYER_BLOCK_LIST, new ArrayList<>(), true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_POSITION_LIST, new ArrayList<>(), true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_QUATERNION_LIST, new ArrayList<>(), true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_BLOCK_COUNT, 0);
+        katamariIO$blockList = new ArrayList<>();
+        katamariIO$positionList = new ArrayList<>();
+        katamariIO$quaternionList = new ArrayList<>();
+        katamariIO$blockCount = 0;
         katamariIO$binRadiiDirty = true;
     }
 
     @Override
     public List<Vec3> katamariIO$getSphericalPlayerPositions() {
-        Player entity = (Player)(Object)this;
-        return entity.getEntityData().get(SPHERICAL_PLAYER_POSITION_LIST);
+        return katamariIO$positionList;
     }
     @Override
     public List<Quaternionf> katamariIO$getSphericalPlayerQuaternions() {
-        Player entity = (Player)(Object)this;
-        return entity.getEntityData().get(SPHERICAL_PLAYER_QUATERNION_LIST);
+        return katamariIO$quaternionList;
     }
     @Override
     public List<Block> katamariIO$getSphericalPlayerBlocks() {
-        Player entity = (Player)(Object)this;
-        return entity.getEntityData().get(SPHERICAL_PLAYER_BLOCK_LIST);
+        return katamariIO$blockList;
     }
 
     @Unique
@@ -496,8 +476,7 @@ public abstract class PlayerMixin implements ICustomPlayerData {
             katamariIO$binMaxRadii[i] = baseCollisionRadius;
         }
 
-        List<Vec3> vec3s = entity.getEntityData().get(SPHERICAL_PLAYER_POSITION_LIST);
-        for (Vec3 offset : vec3s) {
+        for (Vec3 offset : katamariIO$positionList) {
             float distance = (float) offset.length();
             if (distance < 1.0E-6f) {
                 continue;
@@ -542,10 +521,7 @@ public abstract class PlayerMixin implements ICustomPlayerData {
         float collisionRadius = entity.getEntityData().get(sphericalPlayerMod$SIZE) / 2.0f;
         float cutoffRadius = Math.max(0.0f, collisionRadius - KATAMARI_DP_CUTOFF_OFFSET);
 
-        List<Block> blocks = entity.getEntityData().get(SPHERICAL_PLAYER_BLOCK_LIST);
-        List<Quaternionf> quaternions = entity.getEntityData().get(SPHERICAL_PLAYER_QUATERNION_LIST);
-        List<Vec3> positions = entity.getEntityData().get(SPHERICAL_PLAYER_POSITION_LIST);
-        int size = Math.min(blocks.size(), Math.min(quaternions.size(), positions.size()));
+        int size = Math.min(katamariIO$blockList.size(), Math.min(katamariIO$quaternionList.size(), katamariIO$positionList.size()));
 
         List<Block> keptBlocks = new ArrayList<>(size);
         List<Quaternionf> keptQuaternions = new ArrayList<>(size);
@@ -553,14 +529,14 @@ public abstract class PlayerMixin implements ICustomPlayerData {
         boolean changed = false;
 
         for (int i = 0; i < size; i++) {
-            Vec3 pos = positions.get(i);
+            Vec3 pos = katamariIO$positionList.get(i);
             double blockOuterRadius = pos.length() + KATAMARI_BLOCK_EXTENT;
             if (blockOuterRadius < cutoffRadius) {
                 changed = true;
                 continue;
             }
-            keptBlocks.add(blocks.get(i));
-            keptQuaternions.add(quaternions.get(i));
+            keptBlocks.add(katamariIO$blockList.get(i));
+            keptQuaternions.add(katamariIO$quaternionList.get(i));
             keptPositions.add(pos);
         }
 
@@ -568,9 +544,9 @@ public abstract class PlayerMixin implements ICustomPlayerData {
             return;
         }
 
-        entity.getEntityData().set(SPHERICAL_PLAYER_BLOCK_LIST, keptBlocks, true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_QUATERNION_LIST, keptQuaternions, true);
-        entity.getEntityData().set(SPHERICAL_PLAYER_POSITION_LIST, keptPositions, true);
+        katamariIO$blockList = keptBlocks;
+        katamariIO$quaternionList = keptQuaternions;
+        katamariIO$positionList = keptPositions;
     }
 
 }

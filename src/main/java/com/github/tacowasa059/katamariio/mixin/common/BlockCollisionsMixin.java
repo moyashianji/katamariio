@@ -74,15 +74,15 @@ public abstract class BlockCollisionsMixin<T> extends AbstractIterator<T> {
         katamariIO$entity = p_286246_;
 
         if (katamariIO$entity!=null && katamariIO$entity instanceof Player player && ((ICustomPlayerData) player).katamariIO$getFlag()) {
-            p_286624_ = p_286624_.expandTowards(1, 0, 0).expandTowards(-1, 0, 0)
+            AABB expanded = p_286624_.expandTowards(1, 0, 0).expandTowards(-1, 0, 0)
                     .expandTowards(0, 0, 1).expandTowards(0, 0, -1);
 
-            int $$5 = Mth.floor(p_286624_.minX - 1.0E-7) - 1;
-            int $$6 = Mth.floor(p_286624_.maxX + 1.0E-7) + 1;
-            int $$7 = Mth.floor(p_286624_.minY - 1.0E-7) - 1;
-            int $$8 = Mth.floor(p_286624_.maxY + 1.0E-7) + 1;
-            int $$9 = Mth.floor(p_286624_.minZ - 1.0E-7) - 1;
-            int $$10 = Mth.floor(p_286624_.maxZ + 1.0E-7) + 1;
+            int $$5 = Mth.floor(expanded.minX - 1.0E-7) - 1;
+            int $$6 = Mth.floor(expanded.maxX + 1.0E-7) + 1;
+            int $$7 = Mth.floor(expanded.minY - 1.0E-7) - 1;
+            int $$8 = Mth.floor(expanded.maxY + 1.0E-7) + 1;
+            int $$9 = Mth.floor(expanded.minZ - 1.0E-7) - 1;
+            int $$10 = Mth.floor(expanded.maxZ + 1.0E-7) + 1;
             this.cursor = new Cursor3D($$5, $$7, $$9, $$6, $$8, $$10);
         }
 

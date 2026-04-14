@@ -62,8 +62,17 @@ public class RemoveBlockPacket {
                         Vector3f relativePosLocal = new Vector3f((float) relativePosWorld.x, (float) relativePosWorld.y, (float) relativePosWorld.z);
                         relativePosLocal = relativePosLocal.rotate(inverseBallRotation);
 
-                        playerData.katamariIO$addBlock(block, inverseBallRotation, new Vec3(relativePosLocal.x, relativePosLocal.y, relativePosLocal.z));
+                        Vec3 localPos = new Vec3(relativePosLocal.x, relativePosLocal.y, relativePosLocal.z);
+                        playerData.katamariIO$addBlock(block, inverseBallRotation, localPos);
 
+                        // Sync the new block to the client (totalBatches=-1 means append only, no clear)
+                        ModNetwork.CHANNEL.send(
+                                net.minecraftforge.network.PacketDistributor.PLAYER.with(() -> serverPlayer),
+                                new S2CBlockListPacket(
+                                        serverPlayer.getId(), 0, -1,
+                                        java.util.List.of(block),
+                                        java.util.List.of(localPos),
+                                        java.util.List.of(inverseBallRotation)));
                     }
                 }
 

@@ -29,10 +29,10 @@ public class PlayerRespawnEventListener {
 
     @SubscribeEvent
     public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer) {
-            ICustomPlayerData data = (ICustomPlayerData) event.getEntity();
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            ICustomPlayerData data = (ICustomPlayerData) serverPlayer;
             ModNetwork.sendInitialData(
-                    (ServerPlayer) event.getEntity(),
+                    serverPlayer,
                     data.katamariIO$getSize(),
                     data.katamariIO$getRenderSize(),
                     data.katamariIO$getFlag(),
@@ -40,6 +40,20 @@ public class PlayerRespawnEventListener {
                     data.katamariIO$getQuaternion(),
                     data.katamariIO$getCurrentPosition()
             );
+            // Send block list data in batches to avoid login timeout
+            ModNetwork.sendBlockListToPlayer(serverPlayer, serverPlayer);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onStartTracking(PlayerEvent.StartTracking event) {
+        // When a player starts tracking another player, send the tracked player's block data
+        if (event.getEntity() instanceof ServerPlayer observer
+                && event.getTarget() instanceof Player trackedPlayer) {
+            ICustomPlayerData data = (ICustomPlayerData) trackedPlayer;
+            if (data.katamariIO$getAttachedBlockCount() > 0) {
+                ModNetwork.sendBlockListToPlayer(observer, trackedPlayer);
+            }
         }
     }
 
